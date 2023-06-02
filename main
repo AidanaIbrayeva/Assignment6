@@ -1,0 +1,269 @@
+javac Vertex.java
+javac WeightedGraph.java
+javac Search.java
+javac BreadthFirstSearch.java
+javac DijkstraSearch.java
+javac Main.java
+
+public class Vertex<V> {
+    private V data;
+    private Map<Vertex<V>, Double> adjacentVertices; // with weights
+
+    public Vertex(V data) {
+        this.data = data;
+        this.adjacentVertices = new HashMap<>();
+    }
+
+    public V getData() {
+        return data;
+    }
+
+    public void addAdjacentVertex(Vertex<V> destination, double weight) {
+        adjacentVertices.put(destination, weight);
+    }
+
+    public Map<Vertex<V>, Double> getAdjacentVertices() {
+        return adjacentVertices;
+    }
+}
+
+public class WeightedGraph<V> {
+    private Map<Vertex<V>, List<Vertex<V>>> map;
+
+    public WeightedGraph() {
+        this.map = new HashMap<>();
+    }
+
+    public void addVertex(Vertex<V> vertex) {
+        map.put(vertex, new ArrayList<>());
+    }
+
+    public void addEdge(Vertex<V> source, Vertex<V> destination, double weight) {
+        if (map.containsKey(source) && map.containsKey(destination)) {
+            source.addAdjacentVertex(destination, weight);
+            destination.addAdjacentVertex(source, weight);
+            map.get(source).add(destination);
+            map.get(destination).add(source);
+        }
+    }
+
+    public List<Vertex<V>> getAdjacentVertices(Vertex<V> vertex) {
+        return map.get(vertex);
+    }
+
+    public Set<Vertex<V>> getAllVertices() {
+        return map.keySet();
+    }
+}
+
+public interface Search<V> {
+    List<Vertex<V>> getPath(Vertex<V> source, Vertex<V> destination);
+}
+
+public class BreadthFirstSearch<V> implements Search<V> {
+    private WeightedGraph<V> graph;
+
+    public BreadthFirstSearch(WeightedGraph<V> graph) {
+        this.graph = graph;
+    }
+
+    @Override
+    public List<Vertex<V>> getPath(Vertex<V> source, Vertex<V> destination) {
+        Queue<Vertex<V>> queue = new LinkedList<>();
+        Map<Vertex<V>, Vertex<V>> parentMap = new HashMap<>();
+        Set<Vertex<V>> visited = new HashSet<>();
+
+        queue.offer(source);
+        visited.add(source);
+
+        while (!queue.isEmpty()) {
+            Vertex<V> current = queue.poll();
+
+            if (current.equals(destination)) {
+                break;
+            }
+
+            for (Vertex<V> neighbor : graph.getAdjacentVertices(current)) {
+                if (!visited.contains(neighbor)) {
+                    queue.offer(neighbor);
+                    visited.add(neighbor);
+                    parentMap.put(neighbor, current);
+                }
+            }
+        }
+
+        return buildPath(parentMap, source, destination);
+    }
+
+    private List<Vertex<V>> buildPath(Map<Vertex<V>, Vertex<V>> parentMap, Vertex<V> source, Vertex<V> destination) {
+        List<Vertex<V>> path = new ArrayList<>();
+        Vertex<V> current = destination;
+
+        while (current != null) {
+            path.add(current);
+            if (current.equals(source)) {
+                break;
+            }
+            current = parentMap.get(current);
+        }
+
+        Collections.reverse(path);
+        return path;
+    }
+}
+
+public class DijkstraSearch<V> implements Search<V> {
+    private WeightedGraph<V> graph;
+
+    public DijkstraSearch(WeightedGraph<V> graph) {
+        this.graph = graph;
+    }
+
+    @Override
+    public List<Vertex<V>> getPath(Vertex<V> source, Vertex<V> destination) {
+        PriorityQueue<QueueNode<V>> queue = new PriorityQueue<>();
+        Map<Vertex<V>, Vertex<V>> parentMap = new HashMap<>();
+        Map<Vertex<V>, Double> distanceMap = new HashMap<>();
+        Set<Vertex<V>> visited = new HashSet<>();
+
+        for (Vertex<V> vertex : graph.getAllVertices()) {
+            distanceMap.put(vertex, Double.POSITIVE_INFINITY);
+        }
+        distanceMap.put(source, 0.0);
+
+        queue.offer(new QueueNode<>(source, 0.0));
+
+        while (!queue.isEmpty()) {
+            QueueNode<V> currentNode = queue.poll();
+            Vertex<V> currentVertex = currentNode.getVertex();
+
+            if (visited.contains(currentVertex)) {
+                continue;
+            }
+
+            visited.add(currentVertex);
+
+            if (currentVertex.equals(destination)) {
+                break;
+            }
+
+            for (Vertex<V> neighbor : graph.getAdjacentVertices(currentVertex)) {
+                double edgeWeight = currentVertex.getAdjacentVertices().get(neighbor);
+                double newDistance = distanceMap.get(currentVertex) + edgeWeight;
+
+                if (newDistance < distanceMap.get(neighbor)) {
+                    distanceMap.put(neighbor, newDistance);
+                    parentMap.put(neighbor, currentVertex);
+                    queue.offer(new QueueNode<>(neighbor, newDistance));
+                }
+            }
+        }
+
+        return buildPath(parentMap, source, destination);
+    }
+
+    private List<Vertex<V>> buildPath(Map<Vertex<V>, Vertex<V>> parentMap, Vertex<V> source, Vertex<V> destination) {
+        List<Vertex<V>> path = new ArrayList<>();
+        Vertex<V> current = destination;
+
+        while (current != null) {
+            path.add(current);
+            if (current.equals(source)) {
+                break;
+            }
+            current = parentMap.get(current);
+        }
+
+        Collections.reverse(path);
+        return path;
+    }
+
+    private static class QueueNode<V> implements Comparable<QueueNode<V>> {
+        private Vertex<V> vertex;
+        private double distance;
+
+        public QueueNode(Vertex<V> vertex, double distance) {
+            this.vertex = vertex;
+            this.distance = distance;
+        }
+
+        public Vertex<V> getVertex() {
+            return vertex;
+        }
+
+        @Override
+        public int compareTo(QueueNode<V> other) {
+            return Double.compare(this.distance, other.distance);
+        }
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // Create vertices
+        System.out.print("Enter vertex A: ");
+        Vertex<String> v1 = new Vertex<>(scanner.nextLine());
+        System.out.print("Enter vertex B: ");
+        Vertex<String> v2 = new Vertex<>(scanner.nextLine());
+        System.out.print("Enter vertex C: ");
+        Vertex<String> v3 = new Vertex<>(scanner.nextLine());
+        System.out.print("Enter vertex D: ");
+        Vertex<String> v4 = new Vertex<>(scanner.nextLine());
+        System.out.print("Enter vertex E: ");
+        Vertex<String> v5 = new Vertex<>(scanner.nextLine());
+
+        // Add adjacent vertices with weights
+        System.out.println("Enter adjacent vertices with weights (e.g., A B 5.0):");
+        addAdjacentVertex(scanner, v1);
+        addAdjacentVertex(scanner, v2);
+        addAdjacentVertex(scanner, v3);
+        addAdjacentVertex(scanner, v4);
+        addAdjacentVertex(scanner, v5);
+
+        // Create weighted graph
+        WeightedGraph<String> graph = new WeightedGraph<>();
+        graph.addVertex(v1, Arrays.asList(v2, v3));
+        graph.addVertex(v2, Collections.singletonList(v4));
+        graph.addVertex(v3, Arrays.asList(v4, v5));
+        graph.addVertex(v4, Collections.singletonList(v5));
+
+        // Perform search using BFS
+        Search<String> bfs = new BreadthFirstSearch<>();
+        System.out.println("Performing BFS search...");
+        System.out.print("Enter starting vertex: ");
+        Vertex<String> startBFS = new Vertex<>(scanner.nextLine());
+        System.out.print("Enter ending vertex: ");
+        Vertex<String> endBFS = new Vertex<>(scanner.nextLine());
+        List<Vertex<String>> bfsPath = bfs.search(startBFS, endBFS);
+        System.out.println("BFS Path: " + bfsPath);
+
+        // Perform search using Dijkstra's algorithm
+        Search<String> dijkstra = new DijkstraSearch<>();
+        System.out.println("Performing Dijkstra's algorithm...");
+        System.out.print("Enter starting vertex: ");
+        Vertex<String> startDijkstra = new Vertex<>(scanner.nextLine());
+        System.out.print("Enter ending vertex: ");
+        Vertex<String> endDijkstra = new Vertex<>(scanner.nextLine());
+        List<Vertex<String>> dijkstraPath = dijkstra.search(startDijkstra, endDijkstra);
+        System.out.println("Dijkstra Path: " + dijkstraPath);
+
+        scanner.close();
+    }
+
+    private static void addAdjacentVertex(Scanner scanner, Vertex<String> vertex) {
+        System.out.print("Enter adjacent vertex (or 'done' to finish): ");
+        String adjacentVertex = scanner.next();
+        while (!adjacentVertex.equalsIgnoreCase("done")) {
+            System.out.print("Enter weight: ");
+            double weight = scanner.nextDouble();
+            vertex.addAdjacentVertex(new Vertex<>(adjacentVertex), weight);
+            System.out.print("Enter adjacent vertex (or 'done' to finish): ");
+            adjacentVertex = scanner.next();
+        }
+        scanner.nextLine(); // Consume newline character
+    }
+}
+
+
