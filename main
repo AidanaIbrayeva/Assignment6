@@ -1,9 +1,4 @@
-javac Vertex.java
-javac WeightedGraph.java
-javac Search.java
-javac BreadthFirstSearch.java
-javac DijkstraSearch.java
-javac Main.java
+import java.util.*;
 
 public class Vertex<V> {
     private V data;
@@ -48,7 +43,7 @@ public class WeightedGraph<V> {
     }
 
     public List<Vertex<V>> getAdjacentVertices(Vertex<V> vertex) {
-        return map.get(vertex);
+        return map.getOrDefault(vertex, new ArrayList<>());
     }
 
     public Set<Vertex<V>> getAllVertices() {
@@ -224,46 +219,66 @@ public class Main {
 
         // Create weighted graph
         WeightedGraph<String> graph = new WeightedGraph<>();
-        graph.addVertex(v1, Arrays.asList(v2, v3));
-        graph.addVertex(v2, Collections.singletonList(v4));
-        graph.addVertex(v3, Arrays.asList(v4, v5));
-        graph.addVertex(v4, Collections.singletonList(v5));
+        graph.addVertex(v1);
+        graph.addVertex(v2);
+        graph.addVertex(v3);
+        graph.addVertex(v4);
+        graph.addVertex(v5);
+
+        // Add edges with weights
+        graph.addEdge(v1, v2, 5.0);
+        graph.addEdge(v1, v3, 6.0);
+        graph.addEdge(v2, v4, 3.0);
+        graph.addEdge(v3, v4, 2.0);
+        graph.addEdge(v3, v5, 4.0);
+        graph.addEdge(v4, v5, 1.0);
 
         // Perform search using BFS
-        Search<String> bfs = new BreadthFirstSearch<>();
-        System.out.println("Performing BFS search...");
-        System.out.print("Enter starting vertex: ");
-        Vertex<String> startBFS = new Vertex<>(scanner.nextLine());
-        System.out.print("Enter ending vertex: ");
-        Vertex<String> endBFS = new Vertex<>(scanner.nextLine());
-        List<Vertex<String>> bfsPath = bfs.search(startBFS, endBFS);
+        Search<String> bfs = new BreadthFirstSearch<>(graph);
+        System.out.print("\nEnter source vertex: ");
+        Vertex<String> source = getVertex(scanner, graph);
+        System.out.print("Enter destination vertex: ");
+        Vertex<String> destination = getVertex(scanner, graph);
+        List<Vertex<String>> bfsPath = bfs.getPath(source, destination);
         System.out.println("BFS Path: " + bfsPath);
 
         // Perform search using Dijkstra's algorithm
-        Search<String> dijkstra = new DijkstraSearch<>();
-        System.out.println("Performing Dijkstra's algorithm...");
-        System.out.print("Enter starting vertex: ");
-        Vertex<String> startDijkstra = new Vertex<>(scanner.nextLine());
-        System.out.print("Enter ending vertex: ");
-        Vertex<String> endDijkstra = new Vertex<>(scanner.nextLine());
-        List<Vertex<String>> dijkstraPath = dijkstra.search(startDijkstra, endDijkstra);
+        Search<String> dijkstra = new DijkstraSearch<>(graph);
+        List<Vertex<String>> dijkstraPath = dijkstra.getPath(source, destination);
         System.out.println("Dijkstra Path: " + dijkstraPath);
-
-        scanner.close();
     }
 
     private static void addAdjacentVertex(Scanner scanner, Vertex<String> vertex) {
-        System.out.print("Enter adjacent vertex (or 'done' to finish): ");
-        String adjacentVertex = scanner.next();
-        while (!adjacentVertex.equalsIgnoreCase("done")) {
-            System.out.print("Enter weight: ");
-            double weight = scanner.nextDouble();
-            vertex.addAdjacentVertex(new Vertex<>(adjacentVertex), weight);
-            System.out.print("Enter adjacent vertex (or 'done' to finish): ");
-            adjacentVertex = scanner.next();
+        while (true) {
+            System.out.print("Enter adjacent vertex and weight (or 'done' to finish): ");
+            String input = scanner.nextLine();
+
+            if (input.equals("done")) {
+                break;
+            }
+
+            String[] parts = input.split(" ");
+            if (parts.length == 2) {
+                String adjacentVertex = parts[0];
+                double weight = Double.parseDouble(parts[1]);
+                Vertex<String> destination = new Vertex<>(adjacentVertex);
+                vertex.addAdjacentVertex(destination, weight);
+            } else {
+                System.out.println("Invalid input. Try again.");
+            }
         }
-        scanner.nextLine(); // Consume newline character
+    }
+
+    private static Vertex<String> getVertex(Scanner scanner, WeightedGraph<String> graph) {
+        while (true) {
+            System.out.print("Enter a vertex: ");
+            String vertexData = scanner.nextLine();
+            for (Vertex<String> vertex : graph.getAllVertices()) {
+                if (vertex.getData().equals(vertexData)) {
+                    return vertex;
+                }
+            }
+            System.out.println("Vertex not found. Try again.");
+        }
     }
 }
-
-
